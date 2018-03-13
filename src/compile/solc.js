@@ -34,25 +34,49 @@ export default function (src) {
     } else {
       const exec = `solc --combined-json abi,asm,ast,bin,bin-runtime,clone-bin,devdoc,interface,opcodes,srcmap,srcmap-runtime,userdoc ${src}`;
       const res = JSON.parse(childProcess.execSync(exec));
-      resolve({
-        contracts: Object.keys(res.contracts).reduce((o, k) => {
-          const file = k.split(':')[0];
-          const fileFragments = file.split('/');
-          const contractName = fileFragments[fileFragments.length - 1].split('.sol')[0];
-          const contract = res.contracts[k];
-          const fileName = `${process.env.PWD}/${k.split(':')[0]}`;
-          return {
-            ...o,
-            [contractName]: {
-              ...contract,
-              fileName,
-              abi: JSON.parse(contract.abi),
-              devdoc: JSON.parse(contract.devdoc),
-              userdoc: JSON.parse(contract.userdoc),
-            },
-          };
-        }, {}),
+
+      // TODO: cleanup this mess
+      const contracts = {};
+      Object.keys(res.contracts).reduce(function (o, k) {
+        var file = k.split(':')[0];
+        var fileFragments = file.split('/');
+        var contractName = k.split(':')[1]
+        var contract = res.contracts[k];
+        var fileName = fileFragments[fileFragments.length - 1].split('.sol')[0];
+        
+        if (fileName === contractName) {
+          contracts[contractName] = {
+            fileName: `${process.env.PWD}/${k.split(':')[0]}`,
+            abi: JSON.parse(contract.abi),
+            devdoc: JSON.parse(contract.devdoc),
+            userdoc: JSON.parse(contract.userdoc)
+          }
+        }
       });
+
+      resolve({
+        contracts: contracts
+      });
+
+      // resolve({
+      //   contracts: Object.keys(res.contracts).reduce((o, k) => {
+      //     const file = k.split(':')[0];
+      //     const fileFragments = file.split('/');
+      //     const contractName = fileFragments[fileFragments.length - 1].split('.sol')[0];
+      //     const contract = res.contracts[k];
+      //     const fileName = `${process.env.PWD}/${k.split(':')[0]}`;
+      //     return {
+      //       ...o,
+      //       [contractName]: {
+      //         ...contract,
+      //         fileName,
+      //         abi: JSON.parse(contract.abi),
+      //         devdoc: JSON.parse(contract.devdoc),
+      //         userdoc: JSON.parse(contract.userdoc),
+      //       },
+      //     };
+      //   }, {}),
+      // });
     }
   });
 }
